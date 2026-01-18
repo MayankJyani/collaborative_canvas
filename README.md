@@ -5,7 +5,7 @@ A real-time multi-user drawing application built with React-style vanilla JavaSc
 ## Features
 
 ### Core Features
-- **Real-time Drawing**: See other users' drawings as they draw, not after they finish
+- **Real-time Drawing**: See other users' strokes stream live as they draw (start/append/end)
 - **Drawing Tools**: Brush and eraser with customizable colors and stroke widths
 - **User Indicators**: See where other users are currently drawing with cursor positions
 - **Global Undo/Redo**: Works across all users with proper conflict resolution
@@ -115,8 +115,10 @@ PORT=8080 npm start
 ## Performance Considerations
 
 - Cursor updates are throttled to 50ms intervals to reduce network traffic
+- Stroke points are streamed in small batches (~16ms) for live rendering
 - Drawing paths use quadratic curves for smooth rendering
 - Client-side prediction provides immediate visual feedback
+- Cursors render on a separate overlay canvas to avoid trails
 - Canvas operations are optimized with proper context management
 
 ## Browser Compatibility

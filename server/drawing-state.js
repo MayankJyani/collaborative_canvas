@@ -18,6 +18,9 @@ class DrawingStateManager {
   addOperation(operation) {
     // Remove any operations after current index (when drawing after undo)
     if (this.currentIndex < this.operations.length - 1) {
+      // NOTE(m): When drawing after an undo, we drop the "future" branch to keep a single linear
+      // history. This mirrors typical editors. An alternative would be to keep branches or merge
+      // operations (CRDT/OT), but that's overkill for this assignment's scope.
       this.operations = this.operations.slice(0, this.currentIndex + 1);
     }
 

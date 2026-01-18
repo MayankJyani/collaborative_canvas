@@ -33,6 +33,11 @@ class CollaborativeCanvas {
     
     // Setup canvas event listeners
     this.setupCanvasEvents();
+
+    // Setup cursor overlay canvas
+    this.cursorCanvas = document.getElementById('cursor-layer');
+    this.cursorCtx = this.cursorCanvas.getContext('2d');
+    this.resizeCursorCanvas();
     
     // Setup WebSocket event handlers
     this.setupWebSocketHandlers();
@@ -116,6 +121,7 @@ class CollaborativeCanvas {
     window.addEventListener('resize', () => {
       const operations = this.operationHistory.slice(0, this.currentIndex + 1);
       this.canvas.resizeCanvas();
+      this.resizeCursorCanvas();
       this.canvas.redrawFromHistory(operations);
     });
     
@@ -168,6 +174,21 @@ class CollaborativeCanvas {
     const coords = this.canvas.getCanvasCoordinates(event);
     this.canvas.startDrawing(coords.x, coords.y);
     this.wsClient.sendCursorMove(coords.x, coords.y, true);
+
+    // Begin streaming stroke
+    this.currentStrokeId = `${this.wsClient.userId}-${Date.now()}`;
+    this.strokeMeta = {
+      color: this.canvas.color,
+      lineWidth: this.canvas.lineWidth,
+      tool: this.canvas.tool
+    };
+    this.pendingPoints = [{ x: coords.x, y: coords.y }];
+    this.lastAppendTs = performance.now();
+    this.wsClient.sendDrawStart({
+      strokeId: this.currentStrokeId,
+      ...this.strokeMeta,
+      point: { x: coords.x, y: coords.y }
+    });
   }
 
   /**
@@ -178,6 +199,18 @@ class CollaborativeCanvas {
     
     if (this.canvas.isDrawing) {
       this.canvas.continueDrawing(coords.x, coords.y);
+
+      // Buffer and send append chunks
+      this.pendingPoints.push({ x: coords.x, y: coords.y });
+      const now = performance.now();
+      if (now - this.lastAppendTs > 16 || this.pendingPoints.length >= 6) {
+        this.wsClient.sendDrawAppend({
+          strokeId: this.currentStrokeId,
+          points: this.pendingPoints
+        });
+        this.pendingPoints = [];
+        this.lastAppendTs = now;
+      }
     }
     
     this.wsClient.sendCursorMove(coords.x, coords.y, this.canvas.isDrawing);
@@ -188,15 +221,19 @@ class CollaborativeCanvas {
    */
   handleDrawEnd(event) {
     const pathData = this.canvas.stopDrawing();
-    
-    if (pathData) {
-      // Send to server
-      this.wsClient.sendDraw(pathData);
-      
-      // Store locally for client-side prediction
-      this.localOperations.push(pathData);
+
+    // Flush any remaining points and end stroke
+    if (this.currentStrokeId) {
+      if (this.pendingPoints && this.pendingPoints.length) {
+        this.wsClient.sendDrawAppend({
+          strokeId: this.currentStrokeId,
+          points: this.pendingPoints
+        });
+        this.pendingPoints = [];
+      }
+      this.wsClient.sendDrawEnd({ strokeId: this.currentStrokeId });
     }
-    
+
     const coords = this.canvas.getCanvasCoordinates(event);
     this.wsClient.sendCursorMove(coords.x, coords.y, false);
   }
@@ -223,14 +260,27 @@ class CollaborativeCanvas {
       this.updateUserInfo(data.user);
     });
     
-    // Remote drawing
-    this.wsClient.on('draw', (operation) => {
-      // Add to history
+    // Remote streaming: start
+    this.remoteStrokes = new Map(); // strokeId -> { color, lineWidth, tool, points: [] }
+    this.wsClient.on('draw:start', ({ strokeId, color, lineWidth, tool, point }) => {
+      this.remoteStrokes.set(strokeId, { color, lineWidth, tool, points: [point] });
+      this.canvas.drawPath([point], color, lineWidth, tool);
+    });
+
+    // Remote streaming: append
+    this.wsClient.on('draw:append', ({ strokeId, points }) => {
+      const s = this.remoteStrokes.get(strokeId);
+      if (!s) return;
+      s.points.push(...points);
+      this.canvas.drawPath(s.points, s.color, s.lineWidth, s.tool);
+    });
+
+    // Canonical final operation (sender included)
+    this.wsClient.on('draw:final', (operation) => {
       this.operationHistory.push(operation);
       this.currentIndex++;
-      
-      // Draw on canvas
-      this.canvas.drawOperation(operation);
+      // No need to redraw here; canvas already has the stroke via streaming.
+      this.remoteStrokes.delete(operation.strokeId);
     });
     
     // User joined
@@ -274,18 +324,19 @@ class CollaborativeCanvas {
    */
   animateCursors() {
     const draw = () => {
-      // Only redraw cursors, not the entire canvas
+      // Clear overlay and draw fresh cursors each frame
+      const c = this.cursorCanvas;
+      const ctx = this.cursorCtx;
+      ctx.clearRect(0, 0, c.width, c.height);
+
       const remoteCursors = this.wsClient.getRemoteCursors();
       const now = Date.now();
       
       remoteCursors.forEach((cursor, userId) => {
-        // Skip old cursors (not updated in last 2 seconds)
-        if (now - cursor.timestamp > 2000) return;
-        
+        if (now - cursor.timestamp > 2000) return; // stale
         const user = this.wsClient.getUser(userId);
-        if (user) {
-          this.canvas.drawCursor(cursor.x, cursor.y, user.color, cursor.isDrawing);
-        }
+        if (!user) return;
+        this.drawCursorOnOverlay(cursor.x, cursor.y, user.color, cursor.isDrawing);
       });
       
       this.cursorAnimationFrame = requestAnimationFrame(draw);
@@ -368,6 +419,35 @@ class CollaborativeCanvas {
       notification.classList.remove('show');
       setTimeout(() => notification.remove(), 300);
     }, 3000);
+  }
+  /**
+   * Resize cursor overlay canvas to match base canvas DPR
+   */
+  resizeCursorCanvas() {
+    const rect = this.canvas.canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    this.cursorCanvas.width = rect.width * dpr;
+    this.cursorCanvas.height = rect.height * dpr;
+    this.cursorCtx.setTransform(1, 0, 0, 1, 0, 0);
+    this.cursorCtx.scale(dpr, dpr);
+  }
+
+  /**
+   * Draw cursor onto overlay ctx (replicates CanvasManager.drawCursor logic)
+   */
+  drawCursorOnOverlay(x, y, color, isDrawing) {
+    const ctx = this.cursorCtx;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, isDrawing ? 4 : 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, isDrawing ? 8 : 6, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 }
 

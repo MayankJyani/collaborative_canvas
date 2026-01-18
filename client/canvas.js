@@ -36,6 +36,14 @@ class CanvasManager {
     this.offscreenCanvas.width = this.canvas.width;
     this.offscreenCanvas.height = this.canvas.height;
     
+    // Reset transforms to avoid compounding scales on repeated resizes
+    this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    this.offscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
+    
+    // NOTE(m): We scale the 2D contexts to account for device pixel ratio. If resizeCanvas()
+    // is called multiple times (e.g., on window resize), this transform will compound.
+    // In a production build, consider resetting the transform with setTransform(1,0,0,1,0,0)
+    // before scaling to avoid double-scaling artifacts.
     this.ctx.scale(dpr, dpr);
     this.offscreenCtx.scale(dpr, dpr);
     

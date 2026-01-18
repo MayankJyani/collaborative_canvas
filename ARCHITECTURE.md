@@ -101,15 +101,26 @@ All clients redraw canvas from history[0...currentIndex]
 }
 ```
 
-2. **draw**
+2. **draw:start**
 ```javascript
 {
-  points: [{x, y}, ...],  // Array of path points
+  strokeId: string,        // Unique client-generated ID
+  point: {x, y},           // First point
   color: string,           // Hex color
   lineWidth: number,       // Stroke width in pixels
-  tool: string            // 'brush' or 'eraser'
+  tool: string             // 'brush' or 'eraser'
 }
 ```
+
+3. **draw:append**
+```javascript
+{
+  strokeId: string,
+  points: [{x, y}, ...]    // Additional path points
+}
+```
+
+4. **draw:end** (finalize stroke)
 
 3. **cursor-move**
 ```javascript
@@ -142,12 +153,32 @@ All clients redraw canvas from history[0...currentIndex]
 }
 ```
 
-2. **draw**
+2. **draw:start**
+```javascript
+{
+  strokeId: string,
+  color: string,
+  lineWidth: number,
+  tool: string,
+  point: {x, y}
+}
+```
+
+3. **draw:append**
+```javascript
+{
+  strokeId: string,
+  points: [{x, y}, ...]
+}
+```
+
+4. **draw:final**
 ```javascript
 {
   id: string,             // Unique operation ID
   type: 'draw',
   userId: string,
+  strokeId: string,
   points: [{x, y}, ...],
   color: string,
   lineWidth: number,

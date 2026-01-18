@@ -43,6 +43,8 @@ io.on('connection', (socket) => {
   
   let currentRoom = 'default';
   let currentUser = null;
+  // Aggregate in-flight strokes per socket
+  const inflightStrokes = new Map(); // strokeId -> { color, lineWidth, tool, points: [] }
 
   /**
    * Join a room
@@ -78,26 +80,54 @@ io.on('connection', (socket) => {
     }
   });
 
-  /**
-   * Handle drawing events
-   * Batches are sent as arrays of points for efficiency
+/**
+   * Handle streaming drawing events (start/append/end)
    */
-  socket.on('draw', (data) => {
+  socket.on('draw:start', ({ strokeId, color, lineWidth, tool, point }) => {
     try {
+      inflightStrokes.set(strokeId, { color, lineWidth, tool, points: [point] });
+      // Broadcast to others for live rendering
+      socket.to(currentRoom).emit('draw:start', { strokeId, color, lineWidth, tool, point });
+    } catch (error) {
+      console.error('Error handling draw:start:', error);
+    }
+  });
+
+  socket.on('draw:append', ({ strokeId, points }) => {
+    try {
+      const s = inflightStrokes.get(strokeId);
+      if (!s) return;
+      if (Array.isArray(points) && points.length) {
+        s.points.push(...points);
+        // Broadcast to others
+        socket.to(currentRoom).emit('draw:append', { strokeId, points });
+      }
+    } catch (error) {
+      console.error('Error handling draw:append:', error);
+    }
+  });
+
+  socket.on('draw:end', ({ strokeId }) => {
+    try {
+      const s = inflightStrokes.get(strokeId);
+      if (!s) return;
       const room = roomManager.getRoom(currentRoom);
       if (!room) return;
-
-      // Add operation to room history
+      // Commit canonical operation with strokeId
       const operation = room.addOperation({
         type: 'draw',
         userId: socket.id,
-        ...data
+        strokeId,
+        points: s.points,
+        color: s.color,
+        lineWidth: s.lineWidth,
+        tool: s.tool
       });
-
-      // Broadcast to other users in room (excluding sender)
-      socket.to(currentRoom).emit('draw', operation);
+      inflightStrokes.delete(strokeId);
+      // Broadcast final operation to ALL (including sender) so histories stay consistent
+      io.to(currentRoom).emit('draw:final', operation);
     } catch (error) {
-      console.error('Error handling draw event:', error);
+      console.error('Error handling draw:end:', error);
     }
   });
 
@@ -181,6 +211,7 @@ io.on('connection', (socket) => {
    */
   socket.on('disconnect', () => {
     try {
+      inflightStrokes.clear();
       if (currentRoom && currentUser) {
         roomManager.removeUserFromRoom(currentRoom, socket.id);
 

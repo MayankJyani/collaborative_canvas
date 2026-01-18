@@ -15,7 +15,9 @@ class WebSocketClient {
     // Event handlers
     this.handlers = {
       'init-state': [],
-      'draw': [],
+      'draw:start': [],
+      'draw:append': [],
+      'draw:final': [],
       'user-joined': [],
       'user-left': [],
       'cursor-move': [],
@@ -28,6 +30,9 @@ class WebSocketClient {
     
     // Throttle cursor updates to reduce network traffic
     this.lastCursorUpdate = 0;
+    // NOTE(m): Cursor updates are throttled to ~20Hz (50ms). This is a good trade-off between
+    // responsiveness and network chatter. You can tighten to 16ms (~60Hz) on LAN or relax to
+    // 100ms on high-latency networks.
     this.cursorUpdateInterval = 50; // ms
   }
 
@@ -86,9 +91,15 @@ class WebSocketClient {
       this.emit('init-state', data);
     });
 
-    // Drawing events
-    this.socket.on('draw', (operation) => {
-      this.emit('draw', operation);
+    // Streaming drawing events
+    this.socket.on('draw:start', (payload) => {
+      this.emit('draw:start', payload);
+    });
+    this.socket.on('draw:append', (payload) => {
+      this.emit('draw:append', payload);
+    });
+    this.socket.on('draw:final', (operation) => {
+      this.emit('draw:final', operation);
     });
 
     // User management
@@ -153,12 +164,27 @@ class WebSocketClient {
   }
 
   /**
-   * Send drawing data
+   * Streaming draw: start
    */
-  sendDraw(pathData) {
+  sendDrawStart(payload) {
     if (!this.connected) return;
-    
-    this.socket.emit('draw', pathData);
+    this.socket.emit('draw:start', payload);
+  }
+
+  /**
+   * Streaming draw: append points (throttled by caller)
+   */
+  sendDrawAppend(payload) {
+    if (!this.connected) return;
+    this.socket.emit('draw:append', payload);
+  }
+
+  /**
+   * Streaming draw: end stroke
+   */
+  sendDrawEnd(payload) {
+    if (!this.connected) return;
+    this.socket.emit('draw:end', payload);
   }
 
   /**
