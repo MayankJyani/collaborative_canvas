@@ -1,0 +1,20 @@
+{
+  "name": "collaborative-canvas",
+  "version": "1.0.0",
+  "description": "Multi-user collaborative drawing application with real-time synchronization",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node server/server.js"
+  },
+  "keywords": ["canvas", "websocket", "collaborative", "real-time", "drawing"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
