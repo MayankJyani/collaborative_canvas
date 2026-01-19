@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: collaborative-canvas
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: node server/server.js
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: NODE_ENV
+        value: production
