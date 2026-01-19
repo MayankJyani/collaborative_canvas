@@ -30,14 +30,20 @@ class WebSocketClient {
   }
 
   // Connect to Socket.io server with reconnection settings
-  connect(serverUrl = 'http://localhost:3000') {
+  connect(serverUrl = null) {
     return new Promise((resolve, reject) => {
       try {
+        // Use current domain if no URL provided (works in production)
+        if (!serverUrl) {
+          serverUrl = window.location.origin;
+        }
+        
         // Initialize Socket.io with reconnection options
         this.socket = io(serverUrl, {
           reconnection: true,
           reconnectionDelay: 1000,
-          reconnectionAttempts: 5
+          reconnectionAttempts: 5,
+          transports: ['websocket', 'polling']
         });
 
         // Handle successful connection
