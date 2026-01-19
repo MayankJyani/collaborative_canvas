@@ -7,6 +7,10 @@ const RoomManager = require('./rooms');
 
 const app = express();
 const server = http.createServer(app);
+
+// Set proper MIME types
+express.static.mime.types['js'] = 'text/javascript';
+
 // Initialize Socket.io with CORS enabled for client connections
 const io = new Server(server, {
   cors: {
@@ -19,11 +23,17 @@ const roomManager = new RoomManager();
 const PORT = process.env.PORT || 3000;
 
 // Serve static files from client directory
-app.use(express.static(path.join(__dirname, '../client')));
+const clientPath = path.join(__dirname, '../client');
+app.use(express.static(clientPath));
 
 // Serve main HTML file
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../client/index.html'));
+  res.sendFile(path.join(clientPath, 'index.html'));
+});
+
+// Fallback for any unmatched routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(clientPath, 'index.html'));
 });
 
 // Health check endpoint for server status
