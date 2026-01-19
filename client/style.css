@@ -1,275 +1,642 @@
-/* Reset and base styles */
+/* ==========================================
+   RESET AND GLOBAL STYLES
+   ========================================== */
+
+/* Remove default browser margins, padding and set border-box sizing */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-  background: #f5f5f5;
-  overflow: hidden;
+/* CSS Variables - Define all colors, shadows and spacing used throughout the app */
+:root {
+  /* Primary brand colors */
+  --primary: #6366f1;
+  --primary-dark: #4f46e5;
+  --primary-light: #818cf8;
+  --secondary: #ec4899;
+  
+  /* Status colors for success, error, warning states */
+  --success: #10b981;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  
+  /* Background colors for different layers */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  
+  /* Text colors for primary and secondary text */
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  
+  /* Border color */
+  --border: #e5e7eb;
+  
+  /* Shadow styles for different elevation levels */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
 }
 
+/* Body styles - Sets up the page background, font, and overall look */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  overflow: hidden; /* Prevent scrollbars */
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==========================================
+   CONTAINER AND LAYOUT
+   ========================================== */
+
+/* Main container - Fills entire viewport and organizes header and content vertically */
 .container {
   display: flex;
   flex-direction: column;
   height: 100vh;
 }
 
-/* Header */
+/* ==========================================
+   HEADER SECTION
+   ========================================== */
+
+/* Header bar at the top of the page */
 .header {
-  background: #fff;
-  padding: 1rem 2rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  padding: 1.25rem 2rem;
+  box-shadow: var(--shadow-md);
   display: flex;
   justify-content: space-between;
   align-items: center;
   z-index: 10;
+  border-bottom: 1px solid var(--border);
 }
 
+/* Logo section - Contains logo icon and title text */
+.logo-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Animated logo icon */
+.logo-icon {
+  font-size: 2rem;
+  animation: float 3s ease-in-out infinite; /* Floating animation effect */
+}
+
+/* Logo floating animation keyframes */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* Left side of header - Contains logo and status */
 .header-left {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
+/* Main title of the app */
 .header h1 {
-  font-size: 1.5rem;
-  color: #333;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #000000; /* Black color */
 }
 
-.status {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.875rem;
+/* Subtitle under the main title */
+.subtitle {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
   font-weight: 500;
+  margin-top: 0.25rem;
 }
 
+/* Status indicator - Shows connection status */
+.status {
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  letter-spacing: 0.5px;
+}
+
+/* Status indicator dot animation */
+.status::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s infinite; /* Pulsing animation */
+}
+
+/* Pulse animation for status indicator */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Status color styles - Success state (green) */
 .status-success {
-  background: #d4edda;
-  color: #155724;
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
 }
 
+.status-success::before {
+  background: var(--success);
+}
+
+/* Status color styles - Error state (red) */
 .status-error {
-  background: #f8d7da;
-  color: #721c24;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
 }
 
+.status-error::before {
+  background: var(--danger);
+}
+
+/* Status color styles - Info state (blue) */
 .status-info {
-  background: #d1ecf1;
-  color: #0c5460;
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary);
 }
 
+.status-info::before {
+  background: var(--primary);
+}
+
+/* User info box - Shows current user name and color */
 .user-info {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: #f8f9fa;
-  border-radius: 20px;
+  gap: 0.75rem;
+  padding: 0.5rem 1.25rem;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  border-radius: 25px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
 }
 
+/* User info text wrapper */
+.user-info-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+/* Label text above username */
+.user-info-text .label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Current username display */
+.user-info-text .username {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Color indicator circle showing user's color */
 .user-color-indicator {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 0 0 1px #ddd;
+  border: 3px solid var(--bg-primary);
+  box-shadow: 0 0 0 1px var(--border), 0 0 8px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
 }
 
-/* Main content */
+
+/* ==========================================
+   MAIN CONTENT AND LAYOUT
+   ========================================== */
+
+/* Main content area - Contains sidebar and canvas */
 .main-content {
   display: flex;
   flex: 1;
   overflow: hidden;
 }
 
-/* Sidebar */
+/* ==========================================
+   SIDEBAR SECTION
+   ========================================== */
+
+/* Left sidebar - Contains drawing tools, colors, and user list */
 .sidebar {
-  width: 280px;
-  background: #fff;
-  box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+  width: 320px;
+  background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  border-right: 1px solid var(--border);
 }
 
+/* Toolbar area - Contains all drawing tools and controls */
 .toolbar {
   padding: 1.5rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border);
+  overflow-y: auto;
+  flex: 1;
 }
 
-.toolbar h3 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #666;
+/* Individual sections within toolbar */
+.toolbar-section {
+  margin-bottom: 1.75rem;
+}
+
+.toolbar-section:last-child {
+  margin-bottom: 0;
+}
+
+/* Section titles (Tools, Color & Style, Actions) */
+.section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
   text-transform: uppercase;
-  margin: 1.5rem 0 0.75rem 0;
+  margin-bottom: 1rem;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.toolbar h3:first-child {
-  margin-top: 0;
-}
 
-/* Tool buttons */
+/* ==========================================
+   TOOL BUTTONS AND ACTIONS
+   ========================================== */
+
+/* Groups for tool and action buttons */
 .tool-group,
 .action-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
+/* Base styles for all tool and action buttons */
 .tool-btn,
 .action-btn {
-  padding: 0.75rem 1rem;
-  border: 2px solid #e0e0e0;
-  background: #fff;
-  border-radius: 8px;
+  padding: 0.85rem 1.25rem;
+  border: 2px solid var(--border);
+  background: var(--bg-primary);
+  border-radius: 12px;
   cursor: pointer;
   font-size: 0.9rem;
-  font-weight: 500;
-  transition: all 0.2s;
-  text-align: left;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-sm);
+  pointer-events: auto; /* Ensures clicks are detected on entire button */
+  user-select: none;
 }
 
+/* Icons inside buttons - Prevent pointer events from interfering with button clicks */
+.tool-icon,
+.btn-icon {
+  font-size: 1.1rem;
+  display: inline-block;
+  pointer-events: none;
+}
+
+/* Text labels inside buttons - Prevent pointer events from interfering with button clicks */
+.tool-label,
+.btn-text {
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* Hover state for buttons - Lift effect and color change */
 .tool-btn:hover,
 .action-btn:hover {
-  background: #f8f9fa;
-  border-color: #4285f4;
+  background: var(--bg-secondary);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px); /* Lift effect on hover */
 }
 
+/* Active state for tool buttons - Shows selected tool with gradient background */
 .tool-btn.active {
-  background: #4285f4;
-  color: #fff;
-  border-color: #4285f4;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  border-color: var(--primary-dark);
+  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.3);
+  transform: translateY(-2px);
 }
 
+/* Danger button styling (Clear button) - Red color */
 .action-btn.danger {
-  color: #dc3545;
+  color: var(--danger);
+  border-color: rgba(239, 68, 68, 0.3);
 }
 
+/* Danger button hover state */
 .action-btn.danger:hover {
-  background: #dc3545;
-  color: #fff;
-  border-color: #dc3545;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
-/* Color controls */
-.color-controls {
+/* Danger button active/pressed state */
+.action-btn.danger.active,
+.action-btn.danger:active {
+  background: var(--danger);
+  color: white;
+  border-color: var(--danger);
+}
+
+
+/* ==========================================
+   COLOR PICKER CONTROLS
+   ========================================== */
+
+/* Color section wrapper */
+.color-section {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 1.25rem;
 }
 
-#color-picker {
-  width: 60px;
-  height: 40px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.color-display {
-  width: 40px;
-  height: 40px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  background: #000;
-}
-
-/* Line width controls */
-.line-width-controls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-#line-width {
-  flex: 1;
-  height: 6px;
-  border-radius: 3px;
-  outline: none;
-  background: #e0e0e0;
-}
-
-#line-width::-webkit-slider-thumb {
-  width: 18px;
-  height: 18px;
-  background: #4285f4;
-  cursor: pointer;
-  border-radius: 50%;
-  appearance: none;
-}
-
-#line-width-value {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #666;
-  min-width: 40px;
-}
-
-/* Users panel */
-.users-panel {
-  padding: 1.5rem;
-  flex: 1;
-}
-
-.users-panel h3 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #666;
-  text-transform: uppercase;
-  margin-bottom: 0.75rem;
-}
-
-.user-list {
+/* Color picker wrapper */
+.color-picker-wrapper {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
+/* Label for color picker */
+.color-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Container for color input and display */
+.color-input-container {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+/* Color picker input - Browser's native color selector */
+#color-picker {
+  width: 60px;
+  height: 50px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s;
+}
+
+/* Color picker hover state */
+#color-picker:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary);
+}
+
+/* Color display box showing currently selected color */
+.color-display {
+  width: 50px;
+  height: 50px;
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  background: #000;
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+
+/* ==========================================
+   LINE WIDTH SLIDER
+   ========================================== */
+
+/* Line width section wrapper */
+.line-width-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Label for line width control */
+.width-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Displays current line width value with gradient text */
+.width-value {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+/* Range slider for line width */
+#line-width {
+  width: 100%;
+  height: 8px;
+  border-radius: 8px;
+  outline: none;
+  background: linear-gradient(90deg, var(--bg-tertiary) 0%, var(--border) 100%);
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+/* Slider thumb for WebKit browsers (Chrome, Safari) */
+#line-width::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  cursor: pointer;
+  border-radius: 50%;
+  appearance: none;
+  box-shadow: var(--shadow-md);
+  border: 2px solid white;
+  transition: all 0.2s;
+}
+
+/* Slider thumb hover effect */
+#line-width::-webkit-slider-thumb:hover {
+  box-shadow: 0 8px 16px rgba(99, 102, 241, 0.4);
+  transform: scale(1.1);
+}
+
+/* Slider thumb for Firefox */
+#line-width::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  cursor: pointer;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s;
+}
+
+
+/* ==========================================
+   USERS PANEL (Online Collaborators)
+   ========================================== */
+
+/* Panel showing list of online users */
+.users-panel {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+/* Title for the users panel */
+.users-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* List container for user items */
+.user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Individual user item in the list */
 .user-item {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.5rem;
-  background: #f8f9fa;
-  border-radius: 6px;
+  padding: 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: all 0.3s;
+  box-shadow: var(--shadow-sm);
 }
 
+/* User item hover state - Highlights and shifts right */
+.user-item:hover {
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+  transform: translateX(2px); /* Slight shift to the right */
+}
+
+/* Color indicator circle showing user's drawing color */
 .user-color {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   flex-shrink: 0;
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px var(--border);
 }
 
+/* Username text */
 .user-name {
-  font-size: 0.875rem;
-  color: #333;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* Canvas area */
+
+/* ==========================================
+   CANVAS AREA (Main Drawing Space)
+   ========================================== */
+
+/* Main canvas area - Where drawing happens */
 .canvas-area {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  background: #e9ecef;
-  position: relative; /* enable overlay stacking */
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  position: relative;
 }
 
-.canvas-stack {
+/* Canvas container wrapper */
+.canvas-container {
   position: relative;
   width: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
 }
 
+/* Header bar above the canvas */
+.canvas-header {
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Label text in canvas header */
+.canvas-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Stack of canvases - Contains drawing canvas and cursor layer */
+.canvas-stack {
+  position: relative;
+  flex: 1;
+  width: 100%;
+}
+
+/* Both drawing canvas and cursor layer positioning */
 #drawing-canvas,
 #cursor-layer {
   position: absolute;
@@ -277,76 +644,156 @@ body {
   top: 0;
   width: 100%;
   height: 100%;
-  border-radius: 8px;
 }
 
+/* Main drawing canvas - Where user draws */
 #drawing-canvas {
-  background: #fff;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  cursor: crosshair;
-  touch-action: none;
+  background: white;
+  cursor: crosshair; /* Crosshair cursor for precision */
+  touch-action: none; /* Prevent browser touch actions */
 }
 
+/* Cursor layer - Shows other users' cursors (no pointer events) */
 #cursor-layer {
-  pointer-events: none; /* allow drawing interactions to hit base canvas */
+  pointer-events: none; /* Allows drawing on layer below */
 }
 
-/* Notifications */
+
+/* ==========================================
+   NOTIFICATIONS
+   ========================================== */
+
+/* Notification toast message */
 .notification {
   position: fixed;
   bottom: 2rem;
   right: 2rem;
-  background: #333;
-  color: #fff;
+  background: linear-gradient(135deg, var(--text-primary) 0%, #1a202c 100%);
+  color: white;
   padding: 1rem 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  opacity: 0;
-  transform: translateY(20px);
-  transition: all 0.3s;
+  border-radius: 12px;
+  box-shadow: var(--shadow-xl);
+  opacity: 0; /* Hidden by default */
+  transform: translateY(20px) scale(0.95); /* Starts below and small */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1000;
+  max-width: 400px;
+  backdrop-filter: blur(10px);
 }
 
+/* Notification visible state - Slides up and grows to normal size */
 .notification.show {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
 }
 
-/* Responsive design */
+/* ==========================================
+   CUSTOM SCROLLBAR STYLING
+   ========================================== */
+
+/* Scrollbar for sidebar and user list (WebKit browsers) */
+.sidebar::-webkit-scrollbar,
+.user-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+/* Scrollbar track */
+.sidebar::-webkit-scrollbar-track,
+.user-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Scrollbar thumb - The draggable part */
+.sidebar::-webkit-scrollbar-thumb,
+.user-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* Scrollbar thumb hover state - Changes to primary color */
+.sidebar::-webkit-scrollbar-thumb:hover,
+.user-list::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+
+/* ==========================================
+   RESPONSIVE DESIGN - TABLET AND DESKTOP
+   ========================================== */
+
+/* Tablets and larger devices - Adjust sidebar width */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 300px;
+  }
+}
+
+/* Tablets - Medium screens */
 @media (max-width: 768px) {
   .sidebar {
-    width: 200px;
+    width: 280px;
   }
 
   .header {
-    padding: 0.75rem 1rem;
+    padding: 1rem;
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+  }
+
+  .subtitle {
+    font-size: 0.7rem;
+  }
+
+  .toolbar {
+    padding: 1.25rem;
+  }
+
+  .logo-icon {
+    font-size: 1.75rem;
+  }
+}
+
+/* ==========================================
+   RESPONSIVE DESIGN - MOBILE
+   ========================================== */
+
+/* Small mobile devices - Sidebar becomes floating drawer */
+@media (max-width: 480px) {
+  /* Sidebar slides in from left on mobile */
+  .sidebar {
+    position: fixed;
+    left: -280px; /* Hidden by default */
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 100;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Sidebar visible when .open class is added */
+  .sidebar.open {
+    left: 0;
+    box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Reduce canvas padding on mobile */
+  .canvas-area {
+    padding: 0.75rem;
+  }
+
+  /* Adjust header spacing */
+  .header-left {
+    gap: 1rem;
   }
 
   .header h1 {
     font-size: 1.25rem;
   }
 
-  .toolbar {
-    padding: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .sidebar {
-    position: fixed;
-    left: -280px;
-    top: 0;
-    bottom: 0;
-    width: 280px;
-    z-index: 100;
-    transition: left 0.3s;
-  }
-
-  .sidebar.open {
-    left: 0;
-  }
-
-  .canvas-area {
-    padding: 0.5rem;
+  /* Hide subtitle on mobile to save space */
+  .subtitle {
+    display: none;
   }
 }

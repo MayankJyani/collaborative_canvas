@@ -11,13 +11,22 @@
     <!-- Header -->
     <header class="header">
       <div class="header-left">
-        <h1>Collaborative Canvas</h1>
+        <div class="logo-section">
+          <div class="logo-icon">🎨</div>
+          <div>
+            <h1>Collaborative Canvas</h1>
+            <p class="subtitle">Real-time Drawing Experience</p>
+          </div>
+        </div>
         <div id="status" class="status">Connecting...</div>
       </div>
       <div class="header-right">
         <div class="user-info">
           <span id="user-color-indicator" class="user-color-indicator"></span>
-          <span id="current-user">Loading...</span>
+          <div class="user-info-text">
+            <span class="label">You</span>
+            <span id="current-user" class="username">Loading...</span>
+          </div>
         </div>
       </div>
     </header>
@@ -26,45 +35,66 @@
       <!-- Sidebar -->
       <aside class="sidebar">
         <div class="toolbar">
-          <h3>Tools</h3>
-          <div class="tool-group">
-            <button class="tool-btn active" data-tool="brush" title="Brush">
-              🖌️ Brush
-            </button>
-            <button class="tool-btn" data-tool="eraser" title="Eraser">
-              🧹 Eraser
-            </button>
+          <!-- Tools Section -->
+          <div class="toolbar-section">
+            <h3 class="section-title">✏️ Drawing Tools</h3>
+            <div class="tool-group">
+              <button class="tool-btn active" data-tool="brush" title="Brush (B)">
+                <span class="tool-icon">🖌️</span>
+                <span class="tool-label">Brush</span>
+              </button>
+              <button class="tool-btn" data-tool="eraser" title="Eraser (E)">
+                <span class="tool-icon">🧹</span>
+                <span class="tool-label">Eraser</span>
+              </button>
+            </div>
           </div>
 
-          <h3>Color</h3>
-          <div class="color-controls">
-            <input type="color" id="color-picker" value="#000000">
-            <div id="current-color" class="color-display"></div>
+          <!-- Color Section -->
+          <div class="toolbar-section">
+            <h3 class="section-title">🎨 Color & Style</h3>
+            <div class="color-section">
+              <div class="color-picker-wrapper">
+                <label for="color-picker" class="color-label">Select Color</label>
+                <div class="color-input-container">
+                  <input type="color" id="color-picker" value="#000000">
+                  <div id="current-color" class="color-display"></div>
+                </div>
+              </div>
+
+              <div class="line-width-section">
+                <label for="line-width" class="width-label">
+                  <span>Line Width</span>
+                  <span id="line-width-value" class="width-value">2px</span>
+                </label>
+                <input type="range" id="line-width" min="1" max="20" value="2">
+              </div>
+            </div>
           </div>
 
-          <h3>Line Width</h3>
-          <div class="line-width-controls">
-            <input type="range" id="line-width" min="1" max="20" value="2">
-            <span id="line-width-value">2px</span>
-          </div>
-
-          <h3>Actions</h3>
-          <div class="action-group">
-            <button id="undo-btn" class="action-btn" title="Undo (Ctrl+Z)">
-              ↶ Undo
-            </button>
-            <button id="redo-btn" class="action-btn" title="Redo (Ctrl+Shift+Z)">
-              ↷ Redo
-            </button>
-            <button id="clear-btn" class="action-btn danger" title="Clear Canvas">
-              🗑️ Clear
-            </button>
+          <!-- Actions Section -->
+          <div class="toolbar-section">
+            <h3 class="section-title">⚙️ Actions</h3>
+            <div class="action-group">
+              <button id="undo-btn" class="action-btn" title="Undo (Ctrl+Z)">
+                <span class="btn-icon">↶</span>
+                <span class="btn-text">Undo</span>
+              </button>
+              <button id="redo-btn" class="action-btn" title="Redo (Ctrl+Shift+Z)">
+                <span class="btn-icon">↷</span>
+                <span class="btn-text">Redo</span>
+              </button>
+              <button id="clear-btn" class="action-btn danger" title="Clear Canvas">
+                <span class="btn-icon">🗑️</span>
+                <span class="btn-text">Clear</span>
+              </button>
+            </div>
           </div>
         </div>
 
         <!-- Online Users -->
         <div class="users-panel">
-          <h3>Online Users</h3>
+          <h3 class="users-title">👥 Online Collaborators</h3>
           <div id="user-list" class="user-list">
             <!-- Users will be populated here -->
           </div>
@@ -73,9 +103,14 @@
 
       <!-- Canvas Area -->
       <main class="canvas-area">
-        <div class="canvas-stack">
-          <canvas id="drawing-canvas"></canvas>
-          <canvas id="cursor-layer"></canvas>
+        <div class="canvas-container">
+          <div class="canvas-header">
+            <span class="canvas-label">Drawing Canvas</span>
+          </div>
+          <div class="canvas-stack">
+            <canvas id="drawing-canvas"></canvas>
+            <canvas id="cursor-layer"></canvas>
+          </div>
         </div>
       </main>
     </div>
