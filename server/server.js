@@ -1,8 +1,4 @@
-/**
- * Collaborative Canvas Server
- * Express + Socket.io server for real-time drawing synchronization
- */
-
+// Collaborative Canvas Server - Express + Socket.io for real-time drawing
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -11,6 +7,7 @@ const RoomManager = require('./rooms');
 
 const app = express();
 const server = http.createServer(app);
+// Initialize Socket.io with CORS enabled for client connections
 const io = new Server(server, {
   cors: {
     origin: "*",
@@ -24,11 +21,12 @@ const PORT = process.env.PORT || 3000;
 // Serve static files from client directory
 app.use(express.static(path.join(__dirname, '../client')));
 
+// Serve main HTML file
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/index.html'));
 });
 
-// Health check endpoint
+// Health check endpoint for server status
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -37,32 +35,30 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Socket.io connection handling
+// Handle new Socket.io connections
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
   
   let currentRoom = 'default';
   let currentUser = null;
-  // Aggregate in-flight strokes per socket
+  // Track strokes being drawn by this socket (not finalized yet)
   const inflightStrokes = new Map(); // strokeId -> { color, lineWidth, tool, points: [] }
 
-  /**
-   * Join a room
-   */
+  // Join user to a room with name and initialize state
   socket.on('join-room', ({ roomId, userName }) => {
     try {
       currentRoom = roomId || 'default';
       socket.join(currentRoom);
 
-      // Add user to room and get assigned data
+      // Register user in room with assigned color
       currentUser = roomManager.addUserToRoom(currentRoom, socket.id, userName);
 
-      // Get room state and users
+      // Get room state for sending to new user
       const room = roomManager.getRoom(currentRoom);
       const users = room.getUsers();
       const operations = room.getCurrentState();
 
-      // Send initial state to joining user
+      // Send full canvas state and user list to joining user
       socket.emit('init-state', {
         userId: socket.id,
         user: currentUser,
@@ -70,7 +66,7 @@ io.on('connection', (socket) => {
         operations: operations
       });
 
-      // Notify other users about new user
+      // Notify other users that new user joined
       socket.to(currentRoom).emit('user-joined', currentUser);
 
       console.log(`User ${socket.id} joined room ${currentRoom}`);
@@ -80,26 +76,26 @@ io.on('connection', (socket) => {
     }
   });
 
-/**
-   * Handle streaming drawing events (start/append/end)
-   */
+  // Handle start of new stroke - Initialize and broadcast to others
   socket.on('draw:start', ({ strokeId, color, lineWidth, tool, point }) => {
     try {
+      // Store stroke info until it's finalized
       inflightStrokes.set(strokeId, { color, lineWidth, tool, points: [point] });
-      // Broadcast to others for live rendering
+      // Broadcast to others for real-time rendering
       socket.to(currentRoom).emit('draw:start', { strokeId, color, lineWidth, tool, point });
     } catch (error) {
       console.error('Error handling draw:start:', error);
     }
   });
 
+  // Handle points being added to current stroke
   socket.on('draw:append', ({ strokeId, points }) => {
     try {
       const s = inflightStrokes.get(strokeId);
       if (!s) return;
       if (Array.isArray(points) && points.length) {
         s.points.push(...points);
-        // Broadcast to others
+        // Broadcast updates to others
         socket.to(currentRoom).emit('draw:append', { strokeId, points });
       }
     } catch (error) {
@@ -107,13 +103,14 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Finalize stroke and save to history
   socket.on('draw:end', ({ strokeId }) => {
     try {
       const s = inflightStrokes.get(strokeId);
       if (!s) return;
       const room = roomManager.getRoom(currentRoom);
       if (!room) return;
-      // Commit canonical operation with strokeId
+      // Commit operation to permanent history
       const operation = room.addOperation({
         type: 'draw',
         userId: socket.id,
@@ -124,19 +121,17 @@ io.on('connection', (socket) => {
         tool: s.tool
       });
       inflightStrokes.delete(strokeId);
-      // Broadcast final operation to ALL (including sender) so histories stay consistent
+      // Broadcast to all so everyone has consistent history
       io.to(currentRoom).emit('draw:final', operation);
     } catch (error) {
       console.error('Error handling draw:end:', error);
     }
   });
 
-  /**
-   * Handle cursor movement
-   * High-frequency event with throttling on client side
-   */
+  // Broadcast cursor position to other users (throttled on client)
   socket.on('cursor-move', ({ x, y, isDrawing }) => {
     try {
+      // Update user cursor position in room
       roomManager.updateUserCursor(currentRoom, socket.id, { x, y }, isDrawing);
 
       // Broadcast cursor position to other users
@@ -151,10 +146,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  /**
-   * Handle undo operation
-   * Global undo affects all users
-   */
+  // Undo last operation - affects all users in room
   socket.on('undo', () => {
     try {
       const room = roomManager.getRoom(currentRoom);
@@ -162,7 +154,7 @@ io.on('connection', (socket) => {
 
       const result = room.undo();
       if (result) {
-        // Broadcast undo to all users including sender
+        // Broadcast undo to everyone so histories stay in sync
         io.to(currentRoom).emit('undo', result);
       }
     } catch (error) {
@@ -170,10 +162,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  /**
-   * Handle redo operation
-   * Global redo affects all users
-   */
+  // Redo previously undone operation - affects all users in room
   socket.on('redo', () => {
     try {
       const room = roomManager.getRoom(currentRoom);
@@ -181,7 +170,7 @@ io.on('connection', (socket) => {
 
       const result = room.redo();
       if (result) {
-        // Broadcast redo to all users including sender
+        // Broadcast redo to everyone so histories stay in sync
         io.to(currentRoom).emit('redo', result);
       }
     } catch (error) {
@@ -189,9 +178,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  /**
-   * Handle clear canvas
-   */
+  // Clear entire canvas - affects all users in room
   socket.on('clear-canvas', () => {
     try {
       const room = roomManager.getRoom(currentRoom);
@@ -206,16 +193,16 @@ io.on('connection', (socket) => {
     }
   });
 
-  /**
-   * Handle disconnection
-   */
+  // Handle user disconnection - cleanup and notify others
   socket.on('disconnect', () => {
     try {
+      // Clear any strokes in progress
       inflightStrokes.clear();
       if (currentRoom && currentUser) {
+        // Remove user from room (deletes room if empty)
         roomManager.removeUserFromRoom(currentRoom, socket.id);
 
-        // Notify other users
+        // Notify other users that user left
         socket.to(currentRoom).emit('user-left', {
           userId: socket.id,
           userName: currentUser.name
@@ -228,9 +215,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  /**
-   * Request current room stats
-   */
+  // Send room statistics to requesting user
   socket.on('get-stats', () => {
     try {
       const stats = roomManager.getRoomStats(currentRoom);
@@ -241,13 +226,13 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start server
+// Start server on specified port
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Open http://localhost:${PORT} in your browser`);
 });
 
-// Graceful shutdown
+// Handle graceful shutdown on SIGTERM
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, shutting down gracefully');
   server.close(() => {

@@ -1,52 +1,44 @@
-/**
- * Main Application
- * Integrates canvas drawing, WebSocket communication, and UI
- */
-
+// Main collaborative canvas app - Integrates drawing, WebSocket, and UI
 class CollaborativeCanvas {
   constructor() {
     this.canvas = null;
     this.wsClient = null;
     this.operationHistory = [];
     this.currentIndex = -1;
-    this.localOperations = []; // Track local operations for client-side prediction
+    this.localOperations = [];
     
-    // Cursor animation frame
+    // Cursor animation frame ID
     this.cursorAnimationFrame = null;
     
     this.init();
   }
 
-  /**
-   * Initialize the application
-   */
+  // Initialize application - Set up canvas, WebSocket, and UI
   async init() {
-    // Initialize canvas
+    // Initialize canvas manager
     const canvasElement = document.getElementById('drawing-canvas');
     this.canvas = new CanvasManager(canvasElement);
     
     // Initialize WebSocket client
     this.wsClient = new WebSocketClient();
     
-    // Setup UI event listeners
+    // Setup all UI and event listeners
     this.setupUI();
-    
-    // Setup canvas event listeners
     this.setupCanvasEvents();
 
-    // Setup cursor overlay canvas
+    // Setup cursor overlay canvas for showing remote users' cursors
     this.cursorCanvas = document.getElementById('cursor-layer');
     this.cursorCtx = this.cursorCanvas.getContext('2d');
     this.resizeCursorCanvas();
     
-    // Setup WebSocket event handlers
+    // Setup WebSocket handlers
     this.setupWebSocketHandlers();
     
     // Connect to server
     try {
       await this.wsClient.connect();
       
-      // Join room (get room ID from URL or use default)
+      // Get room ID from URL or use default room
       const urlParams = new URLSearchParams(window.location.search);
       const roomId = urlParams.get('room') || 'default';
       const userName = this.promptUserName();
@@ -59,13 +51,11 @@ class CollaborativeCanvas {
       this.updateStatus('Connection failed', 'error');
     }
     
-    // Start cursor animation
+    // Start animating remote cursors
     this.animateCursors();
   }
 
-  /**
-   * Prompt for user name
-   */
+  // Get or prompt for user name, store in localStorage
   promptUserName() {
     const saved = localStorage.getItem('userName');
     if (saved) return saved;
@@ -75,26 +65,24 @@ class CollaborativeCanvas {
     return name;
   }
 
-  /**
-   * Setup UI controls
-   */
+  // Setup all UI event listeners (tools, color picker, buttons, etc)
   setupUI() {
-    // Tool selection
+    // Tool selection buttons
     document.querySelectorAll('.tool-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-        const tool = e.target.dataset.tool;
+        const tool = e.target.closest('.tool-btn').dataset.tool;
         this.selectTool(tool);
       });
     });
     
-    // Color picker
+    // Color picker input
     const colorPicker = document.getElementById('color-picker');
     colorPicker.addEventListener('input', (e) => {
       this.canvas.setColor(e.target.value);
       this.updateColorDisplay(e.target.value);
     });
     
-    // Line width
+    // Line width slider
     const lineWidth = document.getElementById('line-width');
     lineWidth.addEventListener('input', (e) => {
       this.canvas.setLineWidth(parseInt(e.target.value));
@@ -110,14 +98,14 @@ class CollaborativeCanvas {
       this.wsClient.sendRedo();
     });
     
-    // Clear button
+    // Clear canvas button
     document.getElementById('clear-btn').addEventListener('click', () => {
       if (confirm('Clear the entire canvas? This affects all users.')) {
         this.wsClient.sendClearCanvas();
       }
     });
     
-    // Window resize
+    // Handle window resize
     window.addEventListener('resize', () => {
       const operations = this.operationHistory.slice(0, this.currentIndex + 1);
       this.canvas.resizeCanvas();
@@ -125,7 +113,7 @@ class CollaborativeCanvas {
       this.canvas.redrawFromHistory(operations);
     });
     
-    // Keyboard shortcuts
+    // Keyboard shortcuts (Ctrl+Z for undo, Ctrl+Shift+Z for redo)
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey || e.metaKey) {
         if (e.key === 'z') {
@@ -140,9 +128,7 @@ class CollaborativeCanvas {
     });
   }
 
-  /**
-   * Setup canvas event listeners for drawing
-   */
+  // Setup canvas mouse and touch event listeners
   setupCanvasEvents() {
     const canvas = this.canvas.canvas;
     
@@ -152,7 +138,7 @@ class CollaborativeCanvas {
     canvas.addEventListener('mouseup', (e) => this.handleDrawEnd(e));
     canvas.addEventListener('mouseleave', (e) => this.handleDrawEnd(e));
     
-    // Touch events for mobile
+    // Touch events for mobile devices
     canvas.addEventListener('touchstart', (e) => {
       e.preventDefault();
       this.handleDrawStart(e);
@@ -167,15 +153,13 @@ class CollaborativeCanvas {
     });
   }
 
-  /**
-   * Handle start of drawing
-   */
+  // Handle drawing start - Initialize stroke and send to server
   handleDrawStart(event) {
     const coords = this.canvas.getCanvasCoordinates(event);
     this.canvas.startDrawing(coords.x, coords.y);
     this.wsClient.sendCursorMove(coords.x, coords.y, true);
 
-    // Begin streaming stroke
+    // Begin streaming stroke to server
     this.currentStrokeId = `${this.wsClient.userId}-${Date.now()}`;
     this.strokeMeta = {
       color: this.canvas.color,
@@ -191,16 +175,14 @@ class CollaborativeCanvas {
     });
   }
 
-  /**
-   * Handle drawing movement
-   */
+  // Handle drawing movement - Buffer and send points periodically
   handleDrawMove(event) {
     const coords = this.canvas.getCanvasCoordinates(event);
     
     if (this.canvas.isDrawing) {
       this.canvas.continueDrawing(coords.x, coords.y);
 
-      // Buffer and send append chunks
+      // Buffer points and send in batches
       this.pendingPoints.push({ x: coords.x, y: coords.y });
       const now = performance.now();
       if (now - this.lastAppendTs > 16 || this.pendingPoints.length >= 6) {
@@ -216,13 +198,11 @@ class CollaborativeCanvas {
     this.wsClient.sendCursorMove(coords.x, coords.y, this.canvas.isDrawing);
   }
 
-  /**
-   * Handle end of drawing
-   */
+  // Handle drawing end - Flush remaining points and close stroke
   handleDrawEnd(event) {
     const pathData = this.canvas.stopDrawing();
 
-    // Flush any remaining points and end stroke
+    // Send any remaining buffered points
     if (this.currentStrokeId) {
       if (this.pendingPoints && this.pendingPoints.length) {
         this.wsClient.sendDrawAppend({
@@ -238,11 +218,9 @@ class CollaborativeCanvas {
     this.wsClient.sendCursorMove(coords.x, coords.y, false);
   }
 
-  /**
-   * Setup WebSocket event handlers
-   */
+  // Setup WebSocket event handlers for real-time collaboration
   setupWebSocketHandlers() {
-    // Initial state
+    // Receive initial canvas state and user list on connection
     this.wsClient.on('init-state', (data) => {
       console.log('Received initial state', data);
       
@@ -253,21 +231,19 @@ class CollaborativeCanvas {
       // Redraw canvas from history
       this.canvas.redrawFromHistory(data.operations);
       
-      // Update user list
+      // Update user lists
       this.updateUserList(data.users);
-      
-      // Update user info display
       this.updateUserInfo(data.user);
     });
     
-    // Remote streaming: start
-    this.remoteStrokes = new Map(); // strokeId -> { color, lineWidth, tool, points: [] }
+    // Handle remote stroke streaming - Start
+    this.remoteStrokes = new Map();
     this.wsClient.on('draw:start', ({ strokeId, color, lineWidth, tool, point }) => {
       this.remoteStrokes.set(strokeId, { color, lineWidth, tool, points: [point] });
       this.canvas.drawPath([point], color, lineWidth, tool);
     });
 
-    // Remote streaming: append
+    // Handle remote stroke streaming - Append points
     this.wsClient.on('draw:append', ({ strokeId, points }) => {
       const s = this.remoteStrokes.get(strokeId);
       if (!s) return;
@@ -275,43 +251,42 @@ class CollaborativeCanvas {
       this.canvas.drawPath(s.points, s.color, s.lineWidth, s.tool);
     });
 
-    // Canonical final operation (sender included)
+    // Handle final stroke operation
     this.wsClient.on('draw:final', (operation) => {
       this.operationHistory.push(operation);
       this.currentIndex++;
-      // No need to redraw here; canvas already has the stroke via streaming.
       this.remoteStrokes.delete(operation.strokeId);
     });
     
-    // User joined
+    // User joined notification
     this.wsClient.on('user-joined', (user) => {
       console.log('User joined:', user.name);
       this.updateUserList(this.wsClient.getUsers());
       this.showNotification(`${user.name} joined`);
     });
     
-    // User left
+    // User left notification
     this.wsClient.on('user-left', (data) => {
       console.log('User left:', data.userName);
       this.updateUserList(this.wsClient.getUsers());
       this.showNotification(`${data.userName} left`);
     });
     
-    // Undo
+    // Handle undo operation from server
     this.wsClient.on('undo', (data) => {
       this.currentIndex = data.currentIndex;
       const operations = this.operationHistory.slice(0, this.currentIndex + 1);
       this.canvas.redrawFromHistory(operations);
     });
     
-    // Redo
+    // Handle redo operation from server
     this.wsClient.on('redo', (data) => {
       this.currentIndex = data.currentIndex;
       const operations = this.operationHistory.slice(0, this.currentIndex + 1);
       this.canvas.redrawFromHistory(operations);
     });
     
-    // Clear canvas
+    // Handle canvas clear operation
     this.wsClient.on('clear-canvas', () => {
       this.operationHistory = [];
       this.currentIndex = -1;
@@ -319,12 +294,10 @@ class CollaborativeCanvas {
     });
   }
 
-  /**
-   * Animate remote cursors
-   */
+  // Animate and draw remote users' cursors on overlay
   animateCursors() {
     const draw = () => {
-      // Clear overlay and draw fresh cursors each frame
+      // Clear and redraw cursors each frame
       const c = this.cursorCanvas;
       const ctx = this.cursorCtx;
       ctx.clearRect(0, 0, c.width, c.height);
@@ -332,8 +305,9 @@ class CollaborativeCanvas {
       const remoteCursors = this.wsClient.getRemoteCursors();
       const now = Date.now();
       
+      // Draw each remote cursor
       remoteCursors.forEach((cursor, userId) => {
-        if (now - cursor.timestamp > 2000) return; // stale
+        if (now - cursor.timestamp > 2000) return; // Skip stale cursors
         const user = this.wsClient.getUser(userId);
         if (!user) return;
         this.drawCursorOnOverlay(cursor.x, cursor.y, user.color, cursor.isDrawing);
@@ -345,22 +319,18 @@ class CollaborativeCanvas {
     draw();
   }
 
-  /**
-   * Select drawing tool
-   */
+  // Select a drawing tool and update UI
   selectTool(tool) {
     this.canvas.setTool(tool);
     
-    // Update UI
+    // Update active button styling
     document.querySelectorAll('.tool-btn').forEach(btn => {
       btn.classList.remove('active');
     });
     document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
   }
 
-  /**
-   * Update user list in UI
-   */
+  // Update user list display
   updateUserList(users) {
     const userList = document.getElementById('user-list');
     userList.innerHTML = users.map(user => `
@@ -371,40 +341,30 @@ class CollaborativeCanvas {
     `).join('');
   }
 
-  /**
-   * Update current user info
-   */
+  // Update current user info display
   updateUserInfo(user) {
     document.getElementById('current-user').textContent = user.name;
     document.getElementById('user-color-indicator').style.backgroundColor = user.color;
   }
 
-  /**
-   * Update color display
-   */
+  // Update color preview display
   updateColorDisplay(color) {
     document.getElementById('current-color').style.backgroundColor = color;
   }
 
-  /**
-   * Update line width display
-   */
+  // Update line width value display
   updateLineWidthDisplay(width) {
     document.getElementById('line-width-value').textContent = width + 'px';
   }
 
-  /**
-   * Update connection status
-   */
+  // Update connection status indicator
   updateStatus(message, type = 'info') {
     const statusEl = document.getElementById('status');
     statusEl.textContent = message;
     statusEl.className = `status status-${type}`;
   }
 
-  /**
-   * Show temporary notification
-   */
+  // Show temporary notification toast
   showNotification(message) {
     const notification = document.createElement('div');
     notification.className = 'notification';
@@ -420,9 +380,8 @@ class CollaborativeCanvas {
       setTimeout(() => notification.remove(), 300);
     }, 3000);
   }
-  /**
-   * Resize cursor overlay canvas to match base canvas DPR
-   */
+
+  // Resize cursor overlay canvas to match device pixel ratio
   resizeCursorCanvas() {
     const rect = this.canvas.canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
@@ -432,9 +391,7 @@ class CollaborativeCanvas {
     this.cursorCtx.scale(dpr, dpr);
   }
 
-  /**
-   * Draw cursor onto overlay ctx (replicates CanvasManager.drawCursor logic)
-   */
+  // Draw remote cursor on overlay canvas
   drawCursorOnOverlay(x, y, color, isDrawing) {
     const ctx = this.cursorCtx;
     ctx.save();

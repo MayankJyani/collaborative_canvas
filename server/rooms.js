@@ -1,13 +1,10 @@
-/**
- * RoomManager
- * Manages multiple drawing rooms and their states
- */
-
+// RoomManager - Manages multiple drawing rooms and their states
 const DrawingStateManager = require('./drawing-state');
 
 class RoomManager {
   constructor() {
     this.rooms = new Map(); // roomId -> DrawingStateManager
+    // Pool of colors assigned to users in order
     this.userColors = [
       '#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', 
       '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2',
@@ -16,11 +13,7 @@ class RoomManager {
     this.colorIndex = 0;
   }
 
-  /**
-   * Get or create a room
-   * @param {string} roomId - Room identifier
-   * @returns {DrawingStateManager} Room state manager
-   */
+  // Get existing room or create new one if doesn't exist
   getOrCreateRoom(roomId) {
     if (!this.rooms.has(roomId)) {
       this.rooms.set(roomId, new DrawingStateManager(roomId));
@@ -28,34 +21,21 @@ class RoomManager {
     return this.rooms.get(roomId);
   }
 
-  /**
-   * Get a room
-   * @param {string} roomId - Room identifier
-   * @returns {DrawingStateManager|undefined} Room state manager
-   */
+  // Get room by ID
   getRoom(roomId) {
     return this.rooms.get(roomId);
   }
 
-  /**
-   * Delete a room
-   * @param {string} roomId - Room identifier
-   */
+  // Delete room from manager
   deleteRoom(roomId) {
     this.rooms.delete(roomId);
   }
 
-  /**
-   * Add user to room
-   * @param {string} roomId - Room identifier
-   * @param {string} userId - User identifier
-   * @param {string} userName - User name
-   * @returns {Object} User data including assigned color
-   */
+  // Add user to room with assigned color
   addUserToRoom(roomId, userId, userName) {
     const room = this.getOrCreateRoom(roomId);
     
-    // Assign color to user
+    // Assign next color in rotation
     const color = this.userColors[this.colorIndex % this.userColors.length];
     this.colorIndex++;
 
@@ -71,40 +51,26 @@ class RoomManager {
     return userData;
   }
 
-  /**
-   * Remove user from room
-   * @param {string} roomId - Room identifier
-   * @param {string} userId - User identifier
-   */
+  // Remove user from room and delete room if empty
   removeUserFromRoom(roomId, userId) {
     const room = this.getRoom(roomId);
     if (room) {
       room.removeUser(userId);
       
-      // Delete room if empty
+      // Cleanup empty rooms
       if (room.getUsers().length === 0) {
         this.deleteRoom(roomId);
       }
     }
   }
 
-  /**
-   * Get all users in room
-   * @param {string} roomId - Room identifier
-   * @returns {Array} Array of users
-   */
+  // Get all users in room
   getRoomUsers(roomId) {
     const room = this.getRoom(roomId);
     return room ? room.getUsers() : [];
   }
 
-  /**
-   * Update user cursor position
-   * @param {string} roomId - Room identifier
-   * @param {string} userId - User identifier
-   * @param {Object} cursor - Cursor position {x, y}
-   * @param {boolean} isDrawing - Whether user is currently drawing
-   */
+  // Update user cursor position and drawing state
   updateUserCursor(roomId, userId, cursor, isDrawing) {
     const room = this.getRoom(roomId);
     if (room) {
@@ -116,28 +82,18 @@ class RoomManager {
     }
   }
 
-  /**
-   * Get room statistics
-   * @param {string} roomId - Room identifier
-   * @returns {Object|null} Room statistics
-   */
+  // Get statistics for a room
   getRoomStats(roomId) {
     const room = this.getRoom(roomId);
     return room ? room.getStats() : null;
   }
 
-  /**
-   * Get all rooms
-   * @returns {Array} Array of room IDs
-   */
+  // Get all active room IDs
   getAllRooms() {
     return Array.from(this.rooms.keys());
   }
 
-  /**
-   * Get total number of rooms
-   * @returns {number} Number of active rooms
-   */
+  // Get count of active rooms
   getRoomCount() {
     return this.rooms.size;
   }

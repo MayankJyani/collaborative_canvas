@@ -1,30 +1,20 @@
-/**
- * DrawingStateManager
- * Manages canvas state, operation history, and undo/redo functionality
- */
-
+// DrawingStateManager - Manages canvas state, operation history, and undo/redo functionality
 class DrawingStateManager {
   constructor(roomId) {
     this.roomId = roomId;
     this.operations = []; // Global operation history
-    this.currentIndex = -1; // Current position in history
+    this.currentIndex = -1; // Current position in undo/redo stack
     this.users = new Map(); // userId -> user data
   }
 
-  /**
-   * Add a new drawing operation to history
-   * @param {Object} operation - Drawing operation data
-   */
+  // Add new drawing operation to history with unique ID and timestamp
   addOperation(operation) {
-    // Remove any operations after current index (when drawing after undo)
+    // Trim future operations when drawing after undo (linear history)
     if (this.currentIndex < this.operations.length - 1) {
-      // NOTE(m): When drawing after an undo, we drop the "future" branch to keep a single linear
-      // history. This mirrors typical editors. An alternative would be to keep branches or merge
-      // operations (CRDT/OT), but that's overkill for this assignment's scope.
       this.operations = this.operations.slice(0, this.currentIndex + 1);
     }
 
-    // Add operation with timestamp and unique ID
+    // Create operation with unique ID for tracking
     const op = {
       ...operation,
       id: `${operation.userId}_${Date.now()}_${Math.random()}`,
@@ -37,10 +27,7 @@ class DrawingStateManager {
     return op;
   }
 
-  /**
-   * Undo last operation
-   * @returns {Object|null} The operation to undo
-   */
+  // Move back one operation in history
   undo() {
     if (this.currentIndex < 0) {
       return null;
@@ -56,10 +43,7 @@ class DrawingStateManager {
     };
   }
 
-  /**
-   * Redo previously undone operation
-   * @returns {Object|null} The operation to redo
-   */
+  // Move forward one operation in history
   redo() {
     if (this.currentIndex >= this.operations.length - 1) {
       return null;
@@ -75,19 +59,12 @@ class DrawingStateManager {
     };
   }
 
-  /**
-   * Get all current operations (up to currentIndex)
-   * @returns {Array} Array of operations
-   */
+  // Get all operations up to current history position
   getCurrentState() {
     return this.operations.slice(0, this.currentIndex + 1);
   }
 
-  /**
-   * Add or update user information
-   * @param {string} userId - User ID
-   * @param {Object} userData - User data (color, name, etc.)
-   */
+  // Add or update user information in room
   addUser(userId, userData) {
     this.users.set(userId, {
       ...userData,
@@ -96,43 +73,28 @@ class DrawingStateManager {
     });
   }
 
-  /**
-   * Remove user
-   * @param {string} userId - User ID
-   */
+  // Remove user from room
   removeUser(userId) {
     this.users.delete(userId);
   }
 
-  /**
-   * Get all users
-   * @returns {Array} Array of user data
-   */
+  // Get all users in room
   getUsers() {
     return Array.from(this.users.values());
   }
 
-  /**
-   * Get user by ID
-   * @param {string} userId - User ID
-   * @returns {Object|undefined} User data
-   */
+  // Get user by ID
   getUser(userId) {
     return this.users.get(userId);
   }
 
-  /**
-   * Clear all operations and reset state
-   */
+  // Clear all operations and reset history
   clear() {
     this.operations = [];
     this.currentIndex = -1;
   }
 
-  /**
-   * Get statistics about the current state
-   * @returns {Object} State statistics
-   */
+  // Get statistics about current drawing state
   getStats() {
     return {
       totalOperations: this.operations.length,

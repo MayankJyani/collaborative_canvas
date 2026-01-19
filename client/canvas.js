@@ -1,6 +1,5 @@
 /**
- * CanvasManager
- * Handles all canvas drawing operations using raw Canvas API
+ * CanvasManager - Handles all canvas drawing operations
  */
 
 class CanvasManager {
@@ -15,7 +14,7 @@ class CanvasManager {
     this.color = '#000000';
     this.lineWidth = 2;
     
-    // Performance optimization
+    // Offscreen canvas for performance optimization
     this.offscreenCanvas = document.createElement('canvas');
     this.offscreenCtx = this.offscreenCanvas.getContext('2d');
     
@@ -23,9 +22,7 @@ class CanvasManager {
     this.setupCanvas();
   }
 
-  /**
-   * Resize canvas to match display size
-   */
+  // Resize canvas to match display size and device pixel ratio
   resizeCanvas() {
     const rect = this.canvas.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
@@ -36,24 +33,18 @@ class CanvasManager {
     this.offscreenCanvas.width = this.canvas.width;
     this.offscreenCanvas.height = this.canvas.height;
     
-    // Reset transforms to avoid compounding scales on repeated resizes
+    // Reset transforms to prevent compounding on resize
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.offscreenCtx.setTransform(1, 0, 0, 1, 0, 0);
     
-    // NOTE(m): We scale the 2D contexts to account for device pixel ratio. If resizeCanvas()
-    // is called multiple times (e.g., on window resize), this transform will compound.
-    // In a production build, consider resetting the transform with setTransform(1,0,0,1,0,0)
-    // before scaling to avoid double-scaling artifacts.
+    // Scale contexts for device pixel ratio
     this.ctx.scale(dpr, dpr);
     this.offscreenCtx.scale(dpr, dpr);
     
-    // Set default drawing properties
     this.setupCanvas();
   }
 
-  /**
-   * Setup canvas rendering properties
-   */
+  // Set up canvas rendering properties (smooth lines, rounded caps)
   setupCanvas() {
     const ctx = this.ctx;
     ctx.lineCap = 'round';
@@ -66,9 +57,7 @@ class CanvasManager {
     offCtx.imageSmoothingEnabled = true;
   }
 
-  /**
-   * Get canvas coordinates from mouse/touch event
-   */
+  // Convert mouse/touch event coordinates to canvas coordinates
   getCanvasCoordinates(event) {
     const rect = this.canvas.getBoundingClientRect();
     const clientX = event.clientX || (event.touches && event.touches[0].clientX);
@@ -80,29 +69,23 @@ class CanvasManager {
     };
   }
 
-  /**
-   * Start a new drawing path
-   */
+  // Start a new drawing path
   startDrawing(x, y) {
     this.isDrawing = true;
     this.currentPath = [{ x, y }];
   }
 
-  /**
-   * Continue drawing path
-   */
+  // Add point to current drawing path
   continueDrawing(x, y) {
     if (!this.isDrawing) return;
     
     this.currentPath.push({ x, y });
     
-    // Draw locally for immediate feedback
+    // Draw immediately for user feedback
     this.drawPath(this.currentPath, this.color, this.lineWidth, this.tool);
   }
 
-  /**
-   * Stop drawing and return the path data
-   */
+  // Stop drawing and return path data
   stopDrawing() {
     if (!this.isDrawing) return null;
     
@@ -119,10 +102,7 @@ class CanvasManager {
     return pathData;
   }
 
-  /**
-   * Draw a path on canvas
-   * This is the core drawing function used for both local and remote drawing
-   */
+  // Draw a path on canvas (used for local and remote drawing)
   drawPath(points, color, lineWidth, tool = 'brush') {
     if (!points || points.length === 0) return;
     
@@ -130,6 +110,7 @@ class CanvasManager {
     
     ctx.save();
     
+    // Handle eraser vs brush
     if (tool === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
       ctx.strokeStyle = 'rgba(0,0,0,1)';
@@ -141,7 +122,7 @@ class CanvasManager {
     ctx.lineWidth = lineWidth;
     ctx.beginPath();
     
-    // Optimization: Use quadratic curves for smoother lines
+    // Draw smooth lines using quadratic curves
     if (points.length === 1) {
       const point = points[0];
       ctx.arc(point.x, point.y, lineWidth / 2, 0, Math.PI * 2);
@@ -168,26 +149,19 @@ class CanvasManager {
     ctx.restore();
   }
 
-  /**
-   * Draw an operation (used for replaying history)
-   */
+  // Render operation from history (for undo/redo)
   drawOperation(operation) {
     if (operation.type === 'draw') {
       this.drawPath(operation.points, operation.color, operation.lineWidth, operation.tool);
     }
   }
 
-  /**
-   * Clear the entire canvas
-   */
+  // Clear entire canvas
   clear() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
-  /**
-   * Redraw canvas from operation history
-   * Used for undo/redo functionality
-   */
+  // Redraw canvas from operation history
   redrawFromHistory(operations) {
     this.clear();
     
@@ -196,30 +170,22 @@ class CanvasManager {
     }
   }
 
-  /**
-   * Set drawing tool
-   */
+  // Update drawing tool
   setTool(tool) {
     this.tool = tool;
   }
 
-  /**
-   * Set drawing color
-   */
+  // Update drawing color
   setColor(color) {
     this.color = color;
   }
 
-  /**
-   * Set line width
-   */
+  // Update line width
   setLineWidth(width) {
     this.lineWidth = width;
   }
 
-  /**
-   * Get current drawing state
-   */
+  // Get current drawing state
   getState() {
     return {
       tool: this.tool,
@@ -229,9 +195,7 @@ class CanvasManager {
     };
   }
 
-  /**
-   * Draw remote user's cursor
-   */
+  // Draw remote user's cursor indicator
   drawCursor(x, y, color, isDrawing) {
     const ctx = this.ctx;
     
@@ -240,12 +204,12 @@ class CanvasManager {
     ctx.fillStyle = color;
     ctx.lineWidth = 2;
     
-    // Draw cursor circle
+    // Draw filled circle
     ctx.beginPath();
     ctx.arc(x, y, isDrawing ? 4 : 3, 0, Math.PI * 2);
     ctx.fill();
     
-    // Draw outline
+    // Draw outline circle
     ctx.beginPath();
     ctx.arc(x, y, isDrawing ? 8 : 6, 0, Math.PI * 2);
     ctx.stroke();
@@ -253,16 +217,12 @@ class CanvasManager {
     ctx.restore();
   }
 
-  /**
-   * Get canvas data URL for export
-   */
+  // Export canvas as image data URL
   toDataURL(type = 'image/png') {
     return this.canvas.toDataURL(type);
   }
 
-  /**
-   * Load image from data URL
-   */
+  // Load image from data URL onto canvas
   loadFromDataURL(dataURL) {
     return new Promise((resolve, reject) => {
       const img = new Image();

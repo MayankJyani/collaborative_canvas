@@ -1,48 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- ==========================================
+       HTML Document Metadata
+       ========================================== -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Collaborative Canvas - Real-time Drawing</title>
+  <!-- Link to external stylesheet for all styling -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Main container - Holds all page content -->
   <div class="container">
-    <!-- Header -->
+    <!-- ==========================================
+         HEADER SECTION
+         Contains app title, status indicator, and current user info
+         ========================================== -->
     <header class="header">
+      <!-- Left side of header - Logo and title -->
       <div class="header-left">
+        <!-- Logo section with icon and app branding -->
         <div class="logo-section">
+          <!-- Animated emoji icon for the app -->
           <div class="logo-icon">🎨</div>
+          <!-- Title and tagline -->
           <div>
             <h1>Collaborative Canvas</h1>
             <p class="subtitle">Real-time Drawing Experience</p>
           </div>
         </div>
+        <!-- Connection status indicator - Shows if connected to server -->
         <div id="status" class="status">Connecting...</div>
       </div>
+      <!-- Right side of header - Current user info -->
       <div class="header-right">
+        <!-- User information box with color indicator -->
         <div class="user-info">
+          <!-- Color dot showing this user's assigned color -->
           <span id="user-color-indicator" class="user-color-indicator"></span>
+          <!-- User label and username -->
           <div class="user-info-text">
             <span class="label">You</span>
+            <!-- Username will be populated by JavaScript -->
             <span id="current-user" class="username">Loading...</span>
           </div>
         </div>
       </div>
     </header>
 
+    <!-- ==========================================
+         MAIN CONTENT AREA
+         Contains sidebar with tools and main canvas
+         ========================================== -->
     <div class="main-content">
-      <!-- Sidebar -->
+      <!-- ==========================================
+           SIDEBAR - Drawing Tools Panel
+           Left panel with all drawing controls
+           ========================================== -->
       <aside class="sidebar">
+        <!-- Toolbar - Contains all drawing tools and settings -->
         <div class="toolbar">
-          <!-- Tools Section -->
+          <!-- DRAWING TOOLS SECTION -->
+          <!-- Tools for selecting different drawing modes -->
           <div class="toolbar-section">
             <h3 class="section-title">✏️ Drawing Tools</h3>
             <div class="tool-group">
+              <!-- Brush tool button - Default active tool -->
               <button class="tool-btn active" data-tool="brush" title="Brush (B)">
                 <span class="tool-icon">🖌️</span>
                 <span class="tool-label">Brush</span>
               </button>
+              <!-- Eraser tool button - Removes drawings -->
               <button class="tool-btn" data-tool="eraser" title="Eraser (E)">
                 <span class="tool-icon">🧹</span>
                 <span class="tool-label">Eraser</span>
@@ -50,40 +79,51 @@
             </div>
           </div>
 
-          <!-- Color Section -->
+          <!-- COLOR & STYLE SECTION -->
+          <!-- Color picker and line width controls -->
           <div class="toolbar-section">
             <h3 class="section-title">🎨 Color & Style</h3>
             <div class="color-section">
+              <!-- Color picker control -->
               <div class="color-picker-wrapper">
                 <label for="color-picker" class="color-label">Select Color</label>
                 <div class="color-input-container">
+                  <!-- Native HTML5 color input -->
                   <input type="color" id="color-picker" value="#000000">
+                  <!-- Display of currently selected color -->
                   <div id="current-color" class="color-display"></div>
                 </div>
               </div>
 
+              <!-- Line width/brush size slider -->
               <div class="line-width-section">
                 <label for="line-width" class="width-label">
                   <span>Line Width</span>
+                  <!-- Display of current line width value -->
                   <span id="line-width-value" class="width-value">2px</span>
                 </label>
+                <!-- Range slider to adjust brush size -->
                 <input type="range" id="line-width" min="1" max="20" value="2">
               </div>
             </div>
           </div>
 
-          <!-- Actions Section -->
+          <!-- ACTIONS SECTION -->
+          <!-- Undo, Redo, and Clear Canvas buttons -->
           <div class="toolbar-section">
             <h3 class="section-title">⚙️ Actions</h3>
             <div class="action-group">
+              <!-- Undo button - Reverses last action -->
               <button id="undo-btn" class="action-btn" title="Undo (Ctrl+Z)">
                 <span class="btn-icon">↶</span>
                 <span class="btn-text">Undo</span>
               </button>
+              <!-- Redo button - Repeats undone action -->
               <button id="redo-btn" class="action-btn" title="Redo (Ctrl+Shift+Z)">
                 <span class="btn-icon">↷</span>
                 <span class="btn-text">Redo</span>
               </button>
+              <!-- Clear button - Removes all content from canvas -->
               <button id="clear-btn" class="action-btn danger" title="Clear Canvas">
                 <span class="btn-icon">🗑️</span>
                 <span class="btn-text">Clear</span>
@@ -92,23 +132,33 @@
           </div>
         </div>
 
-        <!-- Online Users -->
+        <!-- ONLINE USERS SECTION -->
+        <!-- Shows list of currently connected users -->
         <div class="users-panel">
           <h3 class="users-title">👥 Online Collaborators</h3>
+          <!-- User list container - Will be populated dynamically by JavaScript -->
           <div id="user-list" class="user-list">
             <!-- Users will be populated here -->
           </div>
         </div>
       </aside>
 
-      <!-- Canvas Area -->
+      <!-- ==========================================
+           CANVAS AREA - Main Drawing Space
+           Where users draw and see real-time collaboration
+           ========================================== -->
       <main class="canvas-area">
+        <!-- Canvas container with header -->
         <div class="canvas-container">
+          <!-- Canvas header label -->
           <div class="canvas-header">
             <span class="canvas-label">Drawing Canvas</span>
           </div>
+          <!-- Canvas stack - Contains multiple canvas layers -->
           <div class="canvas-stack">
+            <!-- Main drawing canvas - Users draw here -->
             <canvas id="drawing-canvas"></canvas>
+            <!-- Cursor layer - Shows other users' cursor positions -->
             <canvas id="cursor-layer"></canvas>
           </div>
         </div>
@@ -116,12 +166,20 @@
     </div>
   </div>
 
-  <!-- Load Socket.io client -->
+  <!-- ==========================================
+       SCRIPTS
+       Load Socket.io for real-time communication and app logic
+       ========================================== -->
+  
+  <!-- Load Socket.io client library for WebSocket communication -->
   <script src="/socket.io/socket.io.js"></script>
   
-  <!-- Load application scripts -->
+  <!-- Load application scripts in order -->
+  <!-- Canvas drawing logic and event handlers -->
   <script src="canvas.js"></script>
+  <!-- WebSocket/Socket.io communication handlers -->
   <script src="websocket.js"></script>
+  <!-- Main application initialization -->
   <script src="main.js"></script>
 </body>
 </html>

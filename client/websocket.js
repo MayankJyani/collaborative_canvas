@@ -1,8 +1,4 @@
-/**
- * WebSocketClient
- * Handles real-time communication with the server using Socket.io
- */
-
+// WebSocketClient - Handles real-time communication via Socket.io
 class WebSocketClient {
   constructor() {
     this.socket = null;
@@ -12,7 +8,7 @@ class WebSocketClient {
     this.users = new Map();
     this.remoteCursors = new Map();
     
-    // Event handlers
+    // Event handlers registry
     this.handlers = {
       'init-state': [],
       'draw:start': [],
@@ -28,27 +24,23 @@ class WebSocketClient {
       'error': []
     };
     
-    // Throttle cursor updates to reduce network traffic
+    // Throttle cursor updates to reduce network traffic (50ms = ~20Hz)
     this.lastCursorUpdate = 0;
-    // NOTE(m): Cursor updates are throttled to ~20Hz (50ms). This is a good trade-off between
-    // responsiveness and network chatter. You can tighten to 16ms (~60Hz) on LAN or relax to
-    // 100ms on high-latency networks.
     this.cursorUpdateInterval = 50; // ms
   }
 
-  /**
-   * Connect to WebSocket server
-   */
+  // Connect to Socket.io server with reconnection settings
   connect(serverUrl = 'http://localhost:3000') {
     return new Promise((resolve, reject) => {
       try {
-        // Load Socket.io client library dynamically
+        // Initialize Socket.io with reconnection options
         this.socket = io(serverUrl, {
           reconnection: true,
           reconnectionDelay: 1000,
           reconnectionAttempts: 5
         });
 
+        // Handle successful connection
         this.socket.on('connect', () => {
           console.log('Connected to server');
           this.connected = true;
@@ -56,17 +48,19 @@ class WebSocketClient {
           resolve();
         });
 
+        // Handle disconnection
         this.socket.on('disconnect', () => {
           console.log('Disconnected from server');
           this.connected = false;
         });
 
+        // Handle connection errors
         this.socket.on('connect_error', (error) => {
           console.error('Connection error:', error);
           reject(error);
         });
 
-        // Setup event listeners
+        // Setup all Socket.io event listeners
         this.setupEventListeners();
       } catch (error) {
         reject(error);
@@ -74,16 +68,14 @@ class WebSocketClient {
     });
   }
 
-  /**
-   * Setup Socket.io event listeners
-   */
+  // Register Socket.io event listeners for all incoming messages
   setupEventListeners() {
-    // Initial state when joining
+    // Receive initial state when joining room
     this.socket.on('init-state', (data) => {
       this.userId = data.userId;
       this.currentUser = data.user;
       
-      // Update users map
+      // Store all users in current room
       data.users.forEach(user => {
         this.users.set(user.id, user);
       });
@@ -91,30 +83,35 @@ class WebSocketClient {
       this.emit('init-state', data);
     });
 
-    // Streaming drawing events
+    // Receive remote drawing start event
     this.socket.on('draw:start', (payload) => {
       this.emit('draw:start', payload);
     });
+
+    // Receive remote drawing append (points added to stroke)
     this.socket.on('draw:append', (payload) => {
       this.emit('draw:append', payload);
     });
+
+    // Receive finalized remote drawing operation
     this.socket.on('draw:final', (operation) => {
       this.emit('draw:final', operation);
     });
 
-    // User management
+    // User joined room notification
     this.socket.on('user-joined', (user) => {
       this.users.set(user.id, user);
       this.emit('user-joined', user);
     });
 
+    // User left room notification
     this.socket.on('user-left', (data) => {
       this.users.delete(data.userId);
       this.remoteCursors.delete(data.userId);
       this.emit('user-left', data);
     });
 
-    // Cursor movement
+    // Receive remote cursor position updates
     this.socket.on('cursor-move', (data) => {
       this.remoteCursors.set(data.userId, {
         x: data.x,
@@ -125,35 +122,34 @@ class WebSocketClient {
       this.emit('cursor-move', data);
     });
 
-    // Undo/Redo
+    // Receive undo operation from server
     this.socket.on('undo', (data) => {
       this.emit('undo', data);
     });
 
+    // Receive redo operation from server
     this.socket.on('redo', (data) => {
       this.emit('redo', data);
     });
 
-    // Clear canvas
+    // Receive canvas clear operation
     this.socket.on('clear-canvas', () => {
       this.emit('clear-canvas');
     });
 
-    // Stats
+    // Receive room statistics
     this.socket.on('stats', (stats) => {
       this.emit('stats', stats);
     });
 
-    // Errors
+    // Receive server errors
     this.socket.on('error', (error) => {
       console.error('Server error:', error);
       this.emit('error', error);
     });
   }
 
-  /**
-   * Join a room
-   */
+  // Join a room with given ID and user name
   joinRoom(roomId = 'default', userName = 'Anonymous') {
     if (!this.connected) {
       console.error('Not connected to server');
@@ -163,98 +159,76 @@ class WebSocketClient {
     this.socket.emit('join-room', { roomId, userName });
   }
 
-  /**
-   * Streaming draw: start
-   */
+  // Start streaming a new stroke
   sendDrawStart(payload) {
     if (!this.connected) return;
     this.socket.emit('draw:start', payload);
   }
 
-  /**
-   * Streaming draw: append points (throttled by caller)
-   */
+  // Send points to be appended to current stroke
   sendDrawAppend(payload) {
     if (!this.connected) return;
     this.socket.emit('draw:append', payload);
   }
 
-  /**
-   * Streaming draw: end stroke
-   */
+  // End current stroke
   sendDrawEnd(payload) {
     if (!this.connected) return;
     this.socket.emit('draw:end', payload);
   }
 
-  /**
-   * Send cursor position (throttled)
-   */
+  // Send cursor position (throttled to prevent network spam)
   sendCursorMove(x, y, isDrawing) {
     if (!this.connected) return;
     
     const now = Date.now();
     if (now - this.lastCursorUpdate < this.cursorUpdateInterval) {
-      return;
+      return; // Skip if within throttle interval
     }
     
     this.lastCursorUpdate = now;
     this.socket.emit('cursor-move', { x, y, isDrawing });
   }
 
-  /**
-   * Request undo
-   */
+  // Request undo operation
   sendUndo() {
     if (!this.connected) return;
     this.socket.emit('undo');
   }
 
-  /**
-   * Request redo
-   */
+  // Request redo operation
   sendRedo() {
     if (!this.connected) return;
     this.socket.emit('redo');
   }
 
-  /**
-   * Clear canvas
-   */
+  // Clear entire canvas
   sendClearCanvas() {
     if (!this.connected) return;
     this.socket.emit('clear-canvas');
   }
 
-  /**
-   * Request room stats
-   */
+  // Request room statistics from server
   requestStats() {
     if (!this.connected) return;
     this.socket.emit('get-stats');
   }
 
-  /**
-   * Register event handler
-   */
+  // Register event handler for incoming events
   on(event, handler) {
     if (this.handlers[event]) {
       this.handlers[event].push(handler);
     }
   }
 
-  /**
-   * Remove event handler
-   */
+  // Unregister event handler
   off(event, handler) {
     if (this.handlers[event]) {
       this.handlers[event] = this.handlers[event].filter(h => h !== handler);
     }
   }
 
-  /**
-   * Emit event to registered handlers
-   */
+  // Trigger all handlers for a given event
   emit(event, data) {
     if (this.handlers[event]) {
       this.handlers[event].forEach(handler => {
@@ -267,37 +241,27 @@ class WebSocketClient {
     }
   }
 
-  /**
-   * Get all users in current room
-   */
+  // Get all users in current room
   getUsers() {
     return Array.from(this.users.values());
   }
 
-  /**
-   * Get user by ID
-   */
+  // Get user by ID
   getUser(userId) {
     return this.users.get(userId);
   }
 
-  /**
-   * Get current user data
-   */
+  // Get current user object
   getCurrentUser() {
     return this.currentUser;
   }
 
-  /**
-   * Get remote cursors
-   */
+  // Get map of all remote cursors
   getRemoteCursors() {
     return this.remoteCursors;
   }
 
-  /**
-   * Disconnect from server
-   */
+  // Disconnect from server
   disconnect() {
     if (this.socket) {
       this.socket.disconnect();
@@ -305,9 +269,7 @@ class WebSocketClient {
     }
   }
 
-  /**
-   * Check if connected
-   */
+  // Check connection status
   isConnected() {
     return this.connected;
   }
