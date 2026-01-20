@@ -2,6 +2,12 @@
 
 A real-time multi-user drawing application built with React-style vanilla JavaScript, Node.js, and WebSockets. Multiple users can draw simultaneously on the same canvas with live synchronization, cursor tracking, and global undo/redo functionality.
 
+## 🚀 Live Demo
+
+**Try it now**: https://collaborativecanvas--MayankJyani.replit.app
+
+Open the link in multiple browser windows or tabs to test real-time collaboration!
+
 ## Features
 
 ### Core Features
